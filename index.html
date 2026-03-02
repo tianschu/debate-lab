@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debate Lab v5</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,500;0,9..40,700;1,9..40,400&family=DM+Serif+Display&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-deep: #0c1222; --bg-surface: #131b2e; --bg-card: #182240; --bg-elevated: #1e2d52;
+            --accent: #3b9eff; --accent-glow: rgba(59, 158, 255, 0.15); --accent-bright: #6cb8ff;
+            --text-primary: #e8ecf4; --text-secondary: #8a9abb; --text-muted: #5a6a8a;
+            --border: #243154; --success: #34d399; --warning: #fbbf24; --danger: #f87171;
+            --debater-1: #818cf8; --debater-2: #f472b6; --debater-3: #34d399;
+            --radius-sm: 6px; --radius-md: 10px; --radius-lg: 16px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'DM Sans', system-ui, sans-serif; background: var(--bg-deep); color: var(--text-primary); line-height: 1.65; min-height: 100vh; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 32px 24px; }
+
+        .header { text-align: center; margin-bottom: 36px; padding-bottom: 24px; border-bottom: 1px solid var(--border); }
+        .header h1 { font-family: 'DM Serif Display', serif; font-size: 2rem; color: var(--text-primary); letter-spacing: -0.02em; margin-bottom: 6px; }
+        .header h1 span { color: var(--accent); }
+        .header p { color: var(--text-secondary); font-size: 0.95rem; }
+        .user-greeting { background: var(--bg-card); border: 1px solid var(--border); padding: 10px 18px; border-radius: var(--radius-md); margin-top: 14px; display: none; font-size: 0.95rem; color: var(--accent-bright); }
+
+        .api-config { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; margin-bottom: 28px; }
+        .api-config h3 { font-family: 'DM Serif Display', serif; color: var(--text-primary); margin-bottom: 16px; font-size: 1.15rem; }
+        .api-config label { display: block; margin-bottom: 5px; font-weight: 500; color: var(--accent-bright); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.04em; }
+        .api-config input, .api-config select { width: 100%; padding: 10px 14px; margin-bottom: 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-card); color: var(--text-primary); font-family: inherit; font-size: 0.95rem; }
+        .api-config input:focus, .api-config select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+        .api-config small { display: block; color: var(--text-muted); margin-bottom: 10px; font-size: 0.82rem; }
+
+        .progress-bar { display: flex; justify-content: space-between; margin-bottom: 36px; position: relative; }
+        .progress-bar::before { content: ''; position: absolute; top: 14px; left: 0; right: 0; height: 2px; background: var(--border); }
+        .progress-step { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; cursor: pointer; flex: 1; }
+        .progress-step::before { content: ''; width: 28px; height: 28px; background: var(--bg-card); border: 2px solid var(--border); border-radius: 50%; margin-bottom: 8px; transition: all 0.3s; }
+        .progress-step.active::before { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 12px var(--accent-glow); }
+        .progress-step.completed::before { background: var(--success); border-color: var(--success); }
+        .progress-label { font-size: 0.7rem; color: var(--text-muted); text-align: center; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; }
+        .progress-step.active .progress-label, .progress-step.completed .progress-label { color: var(--text-primary); }
+
+        .step { display: none; animation: fadeIn 0.3s ease-in; }
+        .step.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .step-title { font-family: 'DM Serif Display', serif; font-size: 1.5rem; color: var(--text-primary); margin-bottom: 20px; padding-bottom: 14px; border-bottom: 1px solid var(--border); }
+        .instruction { background: var(--bg-card); padding: 18px 20px; border-radius: var(--radius-md); margin-bottom: 24px; border-left: 3px solid var(--accent); font-size: 0.95rem; color: var(--text-secondary); line-height: 1.7; }
+        .instruction p { margin-bottom: 6px; }
+        .instruction strong { color: var(--text-primary); }
+
+        .input-group { margin-bottom: 22px; }
+        .input-group label { display: block; margin-bottom: 8px; font-weight: 500; color: var(--accent-bright); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.04em; }
+        input[type="text"], textarea, select { width: 100%; padding: 12px 16px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 0.95rem; font-family: inherit; background: var(--bg-card); color: var(--text-primary); transition: border-color 0.2s; }
+        input[type="text"]:focus, textarea:focus, select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+        textarea { min-height: 120px; resize: vertical; }
+        .settings-row { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 22px; }
+
+        .btn { background: var(--accent); color: white; border: none; padding: 12px 24px; border-radius: var(--radius-sm); font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: all 0.2s; font-family: inherit; }
+        .btn:hover { background: var(--accent-bright); transform: translateY(-1px); box-shadow: 0 4px 12px var(--accent-glow); }
+        .btn:disabled { background: var(--bg-elevated); color: var(--text-muted); cursor: not-allowed; transform: none; box-shadow: none; }
+        .btn-secondary { background: transparent; border: 1px solid var(--accent); color: var(--accent); }
+        .btn-secondary:hover { background: var(--accent-glow); }
+        .btn-back { background: transparent; border: 1px solid var(--border); color: var(--text-secondary); }
+        .btn-back:hover { border-color: var(--text-primary); color: var(--text-primary); }
+        .btn-danger { background: var(--danger); }
+        .btn-danger:hover { background: #e5566e; }
+        .nav-buttons { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+        .word-count { text-align: right; font-size: 0.82rem; color: var(--text-muted); margin-top: 6px; }
+        .word-count.warning { color: var(--warning); }
+        .word-count.success { color: var(--success); }
+        .hint { font-size: 0.85rem; color: var(--text-muted); margin-top: 5px; }
+        .error { background: rgba(248,113,113,0.1); border: 1px solid var(--danger); color: var(--danger); padding: 14px; border-radius: var(--radius-sm); margin-top: 14px; }
+
+        .name-entry-screen { min-height: 55vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
+        .name-entry-screen h2 { font-family: 'DM Serif Display', serif; font-size: 2rem; color: var(--text-primary); margin-bottom: 12px; }
+        .name-entry-screen p { color: var(--text-secondary); margin-bottom: 28px; font-size: 1.05rem; }
+        .name-entry-screen .input-group { max-width: 400px; width: 100%; }
+        .name-entry-screen input { font-size: 1.1rem; text-align: center; padding: 14px; }
+
+        .persona-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-bottom: 28px; }
+        .persona-card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 22px; transition: all 0.2s; }
+        .persona-card:hover { border-color: var(--accent); }
+        .persona-card[data-index="0"] { border-top: 3px solid var(--debater-1); }
+        .persona-card[data-index="1"] { border-top: 3px solid var(--debater-2); }
+        .persona-card[data-index="2"] { border-top: 3px solid var(--debater-3); }
+        .persona-role-badge { display: inline-block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; padding: 4px 10px; border-radius: 20px; margin-bottom: 12px; }
+        .persona-card[data-index="0"] .persona-role-badge { background: rgba(129,140,248,0.15); color: var(--debater-1); }
+        .persona-card[data-index="1"] .persona-role-badge { background: rgba(244,114,182,0.15); color: var(--debater-2); }
+        .persona-card[data-index="2"] .persona-role-badge { background: rgba(52,211,153,0.15); color: var(--debater-3); }
+        .persona-stance { font-size: 1rem; font-weight: 600; color: var(--text-primary); margin-bottom: 10px; line-height: 1.5; }
+        .persona-spectrum { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; font-size: 0.78rem; color: var(--text-muted); }
+        .spectrum-bar { flex: 1; height: 4px; background: var(--border); border-radius: 2px; position: relative; }
+        .spectrum-marker { position: absolute; top: -4px; width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--bg-deep); }
+        .persona-details-toggle { font-size: 0.82rem; color: var(--accent); cursor: pointer; border: none; background: none; font-family: inherit; padding: 0; margin-bottom: 8px; }
+        .persona-details-toggle:hover { text-decoration: underline; }
+        .persona-details { overflow: hidden; transition: max-height 0.3s ease; }
+        .persona-details.collapsed { max-height: 0; }
+        .persona-details.expanded { max-height: 500px; }
+        .persona-card textarea { font-size: 0.88rem; min-height: 60px; background: var(--bg-card); }
+        .persona-card input[type="text"] { font-size: 0.88rem; background: var(--bg-card); }
+
+        .debate-lab { display: grid; grid-template-columns: 1fr 300px; gap: 18px; margin-bottom: 28px; }
+        .debate-main { background: var(--bg-surface); border-radius: var(--radius-lg); overflow: hidden; border: 1px solid var(--border); }
+        .debate-lab-header { background: linear-gradient(135deg, var(--bg-card), var(--bg-elevated)); padding: 18px 22px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); }
+        .debate-lab-title { font-family: 'DM Serif Display', serif; font-size: 1.15rem; color: var(--text-primary); }
+        .round-badge { background: var(--accent-glow); border: 1px solid var(--accent); padding: 5px 14px; border-radius: 20px; font-weight: 600; font-size: 0.82rem; color: var(--accent-bright); }
+        .debate-content { padding: 24px; max-height: 650px; overflow-y: auto; }
+        .round-section { margin-bottom: 24px; }
+        .round-header { font-family: 'DM Serif Display', serif; font-size: 1rem; color: var(--accent-bright); margin-bottom: 14px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+        .round-summary { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px 18px; margin-bottom: 18px; font-size: 0.9rem; color: var(--text-secondary); line-height: 1.6; font-style: italic; }
+        .round-summary strong { color: var(--accent-bright); font-style: normal; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; }
+        .statement { background: var(--bg-card); border-radius: var(--radius-md); padding: 18px 20px; margin-bottom: 12px; border-left: 3px solid var(--border); transition: background 0.2s; }
+        .statement:hover { background: var(--bg-elevated); }
+        .statement[data-debater="0"] { border-left-color: var(--debater-1); }
+        .statement[data-debater="1"] { border-left-color: var(--debater-2); }
+        .statement[data-debater="2"] { border-left-color: var(--debater-3); }
+        .statement-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .debater-badge { display: flex; align-items: center; gap: 10px; }
+        .debater-icon { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; color: white; }
+        .debater-icon[data-index="0"] { background: var(--debater-1); }
+        .debater-icon[data-index="1"] { background: var(--debater-2); }
+        .debater-icon[data-index="2"] { background: var(--debater-3); }
+        .debater-name-small { font-weight: 600; font-size: 0.9rem; }
+        .debater-name-small[data-index="0"] { color: var(--debater-1); }
+        .debater-name-small[data-index="1"] { color: var(--debater-2); }
+        .debater-name-small[data-index="2"] { color: var(--debater-3); }
+        .reply-indicator { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; padding: 6px 10px; background: var(--bg-deep); border-radius: var(--radius-sm); }
+        .reply-indicator::before { content: '\21B3'; font-size: 1rem; color: var(--accent); }
+        .statement-content { font-size: 0.95rem; line-height: 1.75; color: var(--text-secondary); }
+        .round-nav { text-align: center; padding: 20px; border-top: 1px solid var(--border); }
+
+        .right-sidebar { display: flex; flex-direction: column; gap: 14px; position: sticky; top: 20px; height: fit-content; max-height: calc(100vh - 40px); }
+        .notes-panel { background: var(--bg-surface); border: 2px solid rgba(251,191,36,0.3); border-radius: var(--radius-lg); padding: 18px; flex: 1; display: flex; flex-direction: column; }
+        .notes-title { font-family: 'DM Serif Display', serif; font-size: 0.95rem; color: var(--warning); margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+        .action-banners { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px; }
+        .action-banner { border-radius: var(--radius-md); padding: 16px 20px; margin-bottom: 0; display: flex; align-items: center; gap: 14px; }
+        .action-banner-icon { font-size: 1.5rem; flex-shrink: 0; }
+        .action-banner-text { flex: 1; }
+        .action-banner-title { font-weight: 700; font-size: 0.92rem; margin-bottom: 2px; }
+        .action-banner-desc { font-size: 0.82rem; opacity: 0.85; line-height: 1.4; }
+        .action-banner .btn { flex-shrink: 0; white-space: nowrap; }
+        .banner-question { background: linear-gradient(135deg, rgba(248,113,113,0.15), rgba(248,113,113,0.05)); border: 1px solid rgba(248,113,113,0.3); }
+        .banner-question .action-banner-title { color: var(--danger); }
+        .banner-question .action-banner-desc { color: rgba(248,113,113,0.75); }
+        .banner-question .btn { background: var(--danger); }
+        .banner-question .btn:hover { background: #e5566e; }
+        .notes-hint { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 10px; line-height: 1.5; }
+        .notes-textarea { flex: 1; min-height: 180px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; color: var(--text-primary); font-family: inherit; font-size: 0.88rem; resize: vertical; line-height: 1.6; }
+        .notes-textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+        .notes-textarea::placeholder { color: var(--text-muted); }
+        .keywords-sidebar { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 18px; }
+        .keywords-title { font-family: 'DM Serif Display', serif; font-size: 0.95rem; color: var(--text-primary); margin-bottom: 16px; text-align: center; }
+        .keywords-item { margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid var(--border); }
+        .keywords-item:last-child { border-bottom: none; }
+        .keywords-debater { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+        .keywords-debater-name { font-weight: 600; font-size: 0.85rem; }
+        .keyword-tags { display: flex; flex-wrap: wrap; gap: 5px; }
+        .keyword-tag { background: var(--bg-card); color: var(--accent-bright); padding: 3px 9px; border-radius: 12px; font-size: 0.75rem; font-weight: 500; border: 1px solid var(--border); }
+
+        .mic-drop-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.92); z-index: 9998; grid-template-columns: 1fr 480px; }
+        .mic-drop-overlay.active { display: grid; }
+        .mic-drop-debate-view { padding: 32px; overflow-y: auto; background: var(--bg-deep); border-right: 1px solid var(--border); }
+        .mic-drop-debate-view h3 { font-family: 'DM Serif Display', serif; color: var(--accent-bright); margin-bottom: 18px; font-size: 1.15rem; position: sticky; top: 0; background: var(--bg-deep); padding: 8px 0; z-index: 10; }
+        .mic-drop-panel { background: linear-gradient(180deg, var(--bg-surface), var(--bg-card)); padding: 36px; display: flex; flex-direction: column; overflow-y: auto; }
+        .mic-drop-panel h2 { font-family: 'DM Serif Display', serif; color: var(--text-primary); font-size: 1.5rem; margin-bottom: 8px; text-align: center; }
+        .mic-drop-panel-subtitle { color: var(--text-secondary); text-align: center; margin-bottom: 24px; font-size: 0.9rem; }
+        .mic-drop-form { flex: 1; display: flex; flex-direction: column; gap: 14px; }
+        .mic-drop-form label { color: var(--accent-bright); font-weight: 500; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.04em; }
+        .mic-drop-stems { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 4px; }
+        .mic-drop-stem { background: var(--bg-elevated); border: 1px solid var(--border); color: var(--text-secondary); padding: 5px 10px; border-radius: 16px; font-size: 0.78rem; cursor: pointer; transition: all 0.2s; font-family: inherit; }
+        .mic-drop-stem:hover { border-color: var(--accent); color: var(--accent-bright); }
+        .mic-drop-buttons { display: flex; gap: 12px; margin-top: auto; }
+
+        .reflection-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin-bottom: 22px; }
+        .reflection-debate-ref { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 18px; max-height: 600px; overflow-y: auto; }
+        .reflection-debate-ref-title { font-family: 'DM Serif Display', serif; font-size: 0.95rem; color: var(--accent-bright); margin-bottom: 14px; }
+
+        .revised-draft-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin-bottom: 22px; }
+        .reference-section { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden; margin-bottom: 12px; }
+        .reference-header { background: var(--bg-card); padding: 12px 16px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: 500; font-size: 0.9rem; color: var(--accent-bright); transition: background 0.2s; }
+        .reference-header:hover { background: var(--bg-elevated); }
+        .toggle-icon { font-size: 0.75rem; }
+        .reference-content { overflow: hidden; transition: max-height 0.3s ease-out, padding 0.3s ease-out; }
+        .reference-content.expanded { max-height: 500px; padding: 14px; overflow-y: auto; }
+        .reference-content.collapsed { max-height: 0; padding: 0 14px; }
+        .writing-panel { position: sticky; top: 20px; height: fit-content; }
+
+        .feedback-box { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 20px; margin-bottom: 18px; }
+        .feedback-section { margin-bottom: 20px; padding-bottom: 18px; border-bottom: 1px solid var(--border); }
+        .feedback-section:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+        .feedback-criterion { font-weight: 700; font-size: 0.92rem; margin-bottom: 4px; display: flex; align-items: center; gap: 10px; color: var(--text-primary); }
+        .feedback-score { font-size: 0.78rem; padding: 2px 10px; border-radius: 12px; font-weight: 600; }
+        .score-strong { background: rgba(52,211,153,0.15); color: var(--success); }
+        .score-developing { background: rgba(251,191,36,0.15); color: var(--warning); }
+        .score-emerging { background: rgba(248,113,113,0.15); color: var(--danger); }
+        .feedback-text { font-size: 0.9rem; color: var(--text-secondary); line-height: 1.65; margin-top: 6px; }
+        .revised-essay { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 22px; margin-bottom: 18px; line-height: 1.8; }
+
+        .loading-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(12,18,34,0.95); z-index: 9999; justify-content: center; align-items: center; }
+        .loading-overlay.active { display: flex; }
+        .loading-box { text-align: center; }
+        .spinner { width: 48px; height: 48px; border: 3px solid var(--border); border-top: 3px solid var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 18px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .loading-text { font-family: 'DM Serif Display', serif; font-size: 1.2rem; color: var(--text-primary); margin-bottom: 8px; }
+        .loading-subtext { color: var(--text-muted); font-size: 0.9rem; }
+
+        @media (max-width: 1000px) {
+            .debate-lab { grid-template-columns: 1fr; }
+            .right-sidebar { position: relative; }
+            .persona-grid { grid-template-columns: 1fr; }
+            .revised-draft-layout, .reflection-layout { grid-template-columns: 1fr; }
+            .action-banner { flex-direction: column; text-align: center; }
+            .action-banner .btn { width: 100%; }
+            .action-banners { grid-template-columns: 1fr; }
+            .settings-row { grid-template-columns: 1fr; }
+            .mic-drop-overlay { grid-template-columns: 1fr !important; }
+            .mic-drop-overlay.active { display: flex !important; flex-direction: column; }
+            .mic-drop-debate-view { display: none !important; }
+        }
+        @media (min-width: 1001px) { .mic-drop-debate-view { display: block !important; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header"><h1>Debate <span>Lab</span></h1><p>Where Multiple Perspectives Meet Better Writing</p><div class="user-greeting" id="userGreeting"></div></div>
+
+        <div class="api-config" id="apiConfig" style="display:none;">
+            <h3>Configuration</h3>
+            <label>API Provider</label>
+            <select id="apiProvider">
+                <option value="deepseek-chat" selected>DeepSeek V3.2</option>
+                <option value="openai">OpenAI (GPT-4)</option>
+                <option value="anthropic">Anthropic (Claude)</option>
+                <option value="custom">Custom Endpoint</option>
+            </select>
+            <label>API Key</label>
+            <input type="password" id="apiKey" placeholder="Enter your API key">
+            <small>Your API key is stored locally in your browser only.</small>
+            <div id="customEndpointDiv" style="display:none;"><label>Custom API Endpoint</label><input type="text" id="customEndpoint" placeholder="https://api.example.com/v1/chat/completions"></div>
+            <button class="btn" onclick="saveApiConfig()">Save Configuration</button>
+            <div id="configStatus"></div>
+        </div>
+
+        <div class="progress-bar" id="progressBar">
+            <div class="progress-step active" data-step="1" onclick="goToStep(1)"><div class="progress-label">Welcome</div></div>
+            <div class="progress-step" data-step="2" onclick="goToStep(2)"><div class="progress-label">Setup</div></div>
+            <div class="progress-step" data-step="3" onclick="goToStep(3)"><div class="progress-label">Draft</div></div>
+            <div class="progress-step" data-step="4" onclick="goToStep(4)"><div class="progress-label">Personas</div></div>
+            <div class="progress-step" data-step="5" onclick="goToStep(5)"><div class="progress-label">Debate</div></div>
+            <div class="progress-step" data-step="6" onclick="goToStep(6)"><div class="progress-label">Reflect</div></div>
+            <div class="progress-step" data-step="7" onclick="goToStep(7)"><div class="progress-label">Revise</div></div>
+            <div class="progress-step" data-step="8" onclick="goToStep(8)"><div class="progress-label">Feedback</div></div>
+        </div>
+
+        <div class="step active" id="step1"><div class="name-entry-screen">
+            <h2>Welcome to Debate Lab</h2>
+            <p style="max-width:600px;">Where Multiple Perspectives Meet Better Writing</p>
+            <div style="max-width:560px;width:100%;text-align:left;margin-bottom:28px;">
+                <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-md);padding:20px;margin-bottom:16px;">
+                    <div style="font-weight:600;color:var(--text-primary);margin-bottom:8px;font-size:0.95rem;">What is Debate Lab?</div>
+                    <p style="color:var(--text-secondary);font-size:0.9rem;line-height:1.6;margin-bottom:0;">Debate Lab uses AI to generate a multi-perspective debate on any topic you choose. By reading, questioning, and reflecting on the debate, you will develop stronger argumentative writing skills. The platform is powered by <strong style="color:var(--accent-bright);">DeepSeek V3.2</strong> — a large language model that generates the debaters, their arguments, and personalised feedback on your writing.</p>
+                </div>
+                <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-md);padding:20px;">
+                    <div style="font-weight:600;color:var(--text-primary);margin-bottom:10px;font-size:0.95rem;">How it works</div>
+                    <div style="display:flex;flex-direction:column;gap:10px;">
+                        <div style="display:flex;align-items:flex-start;gap:12px;"><div style="background:var(--accent);color:white;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;flex-shrink:0;">1</div><div style="font-size:0.88rem;color:var(--text-secondary);line-height:1.5;"><strong style="color:var(--text-primary);">Choose a topic</strong> and write an initial argumentative essay.</div></div>
+                        <div style="display:flex;align-items:flex-start;gap:12px;"><div style="background:var(--accent);color:white;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;flex-shrink:0;">2</div><div style="font-size:0.88rem;color:var(--text-secondary);line-height:1.5;"><strong style="color:var(--text-primary);">Watch an AI debate</strong> between three stakeholders with different perspectives.</div></div>
+                        <div style="display:flex;align-items:flex-start;gap:12px;"><div style="background:var(--accent);color:white;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;flex-shrink:0;">3</div><div style="font-size:0.88rem;color:var(--text-secondary);line-height:1.5;"><strong style="color:var(--text-primary);">Take notes and ask questions</strong> — challenge the debaters directly.</div></div>
+                        <div style="display:flex;align-items:flex-start;gap:12px;"><div style="background:var(--accent);color:white;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;flex-shrink:0;">4</div><div style="font-size:0.88rem;color:var(--text-secondary);line-height:1.5;"><strong style="color:var(--text-primary);">Reflect and revise</strong> your essay using insights from the debate.</div></div>
+                        <div style="display:flex;align-items:flex-start;gap:12px;"><div style="background:var(--accent);color:white;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;flex-shrink:0;">5</div><div style="font-size:0.88rem;color:var(--text-secondary);line-height:1.5;"><strong style="color:var(--text-primary);">Receive detailed feedback</strong> on your revised writing.</div></div>
+                    </div>
+                </div>
+            </div>
+            <div class="input-group" style="max-width:400px;width:100%;"><label>Your Name</label><input type="text" id="studentName" placeholder="Enter your full name"></div>
+            <button class="btn" onclick="submitName()">Begin</button>
+        </div></div>
+
+        <div class="step" id="step2"><h2 class="step-title">Step 1. Configure Your Debate</h2><div class="instruction"><p>Enter a debate topic and select the complexity level and number of rounds.</p></div><div class="input-group"><label>Debate Topic</label><input type="text" id="topicInput" placeholder="e.g. Should AI be allowed to assist academic writing?"></div><div class="settings-row"><div class="input-group"><label>Language Level (CEFR)</label><select id="cefrLevel"><option value="B1">B1 — Intermediate</option><option value="B2" selected>B2 — Upper Intermediate</option><option value="C1">C1 — Advanced</option><option value="C2">C2 — Proficiency</option></select></div><div class="input-group"><label>Debate Rounds</label><select id="debateRounds"><option value="2">2 Rounds</option><option value="3" selected>3 Rounds</option><option value="4">4 Rounds</option></select></div></div><button class="btn" onclick="proceedToInitialDraft()">Continue to Initial Draft</button><div id="personasError"></div></div>
+
+        <div class="step" id="step3"><div class="nav-buttons"><button class="btn btn-back" onclick="goToStep(2)">Back</button></div><h2 class="step-title">Step 2. Write Your Initial Draft</h2><div class="instruction"><p>Write an initial argumentative essay (minimum 200 words) on: <strong id="initialDraftTopic"></strong></p></div><div class="input-group"><label>Your Initial Draft</label><textarea id="initialDraftText" placeholder="Write your initial essay..." style="min-height:320px;" oninput="updateInitialDraftWordCount()"></textarea><div class="word-count" id="initialDraftCount">0 words (minimum 200)</div></div><button class="btn" id="generatePersonasBtn" onclick="generatePersonas()" disabled>Generate Debate Personas</button><p class="hint" id="initialDraftHint">Please write at least 200 words to proceed.</p></div>
+
+        <div class="step" id="step4"><div class="nav-buttons"><button class="btn btn-back" onclick="goToStep(3)">Back</button></div><h2 class="step-title">Step 3. Review Debate Personas</h2><div class="instruction"><p>Three archetypal stakeholder viewpoints have been generated. You can edit their roles and positions.</p></div><div class="persona-grid" id="personaGrid"></div><div style="display:flex;gap:10px;"><button class="btn" onclick="generateDebate()">Enter Debate Lab</button><button class="btn btn-secondary" onclick="generatePersonas()">Regenerate</button></div><div id="debateError"></div></div>
+
+        <div class="step" id="step5"><div class="nav-buttons"><button class="btn btn-back" onclick="goToStep(4)">Back</button></div><h2 class="step-title">Step 4. Debate Lab</h2><div class="instruction"><p>Read each round carefully. Use the two tools below to engage actively with the debate.</p></div>
+            <div class="action-banners">
+                <div class="action-banner banner-question"><div class="action-banner-icon">&#9995;</div><div class="action-banner-text"><div class="action-banner-title">Raise a Question</div><div class="action-banner-desc">Challenge a debater — ask them to explain, defend, or give evidence for their claims.</div></div><button class="btn" onclick="openMicDropOverlay()">Ask Now</button></div>
+                <div class="action-banner banner-question" style="background:linear-gradient(135deg,rgba(251,191,36,0.15),rgba(251,191,36,0.05));border-color:rgba(251,191,36,0.3);"><div class="action-banner-icon">&#9997;&#65039;</div><div class="action-banner-text"><div class="action-banner-title" style="color:var(--warning);">Take Notes</div><div class="action-banner-desc" style="color:rgba(251,191,36,0.75);">Jot down key arguments in the notes panel on the right. You'll need these for your revised essay.</div></div><button class="btn" style="background:var(--warning);color:var(--bg-deep);" onclick="document.getElementById('debateNotesText').focus()">Start Writing</button></div>
+            </div>
+            <div class="debate-lab">
+                <div class="debate-main"><div class="debate-lab-header"><div class="debate-lab-title">Live Debate</div><div class="round-badge" id="currentRoundBadge">Round 1</div></div><div class="debate-content" id="debateContent"></div><div class="round-nav" id="roundNav"><button class="btn" id="nextRoundBtn" onclick="showNextRound()">Continue to Round 2</button></div></div>
+                <div class="right-sidebar"><div class="notes-panel"><div class="notes-title">&#9997;&#65039; Take Notes</div><div class="notes-hint">Write down key arguments, surprising points, or ideas for your revised draft. These notes will be available when you write your reflection and final essay.</div><textarea class="notes-textarea" id="debateNotesText" placeholder="e.g. Strong point about...&#10;I disagree with... because...&#10;Useful evidence: ...&#10;I could use this argument..." oninput="saveNotes()"></textarea></div><div class="keywords-sidebar"><div class="keywords-title">Key Arguments</div><div id="keywordsContent"></div></div></div>
+            </div>
+            <div style="text-align:center;margin-top:18px;"><button class="btn" id="continueToReflectionBtn" onclick="goToStep(6)" style="display:none;">Continue to Reflection</button></div>
+        </div>
+
+        <div class="step" id="step6"><div class="nav-buttons"><button class="btn btn-back" onclick="goToStep(5)">Back</button></div><h2 class="step-title">Step 5. Reflection</h2><div class="instruction"><p>Review the debate and your notes on the left, then write your reflection (100–150 words) on the right.</p></div>
+            <div class="reflection-layout">
+                <div style="display:flex;flex-direction:column;gap:14px;">
+                    <div class="reflection-debate-ref" style="flex:1;"><div class="reflection-debate-ref-title">Debate Reference</div><div id="reflectionDebateContent"></div></div>
+                    <div class="reflection-debate-ref" style="flex:0 0 auto;max-height:250px;border-color:rgba(251,191,36,0.3);"><div class="reflection-debate-ref-title" style="color:var(--warning);">&#9997;&#65039; Your Notes</div><div id="reflectionNotesContent" style="font-size:0.88rem;color:var(--text-secondary);white-space:pre-wrap;line-height:1.5;"></div></div>
+                </div>
+                <div><div class="input-group"><label>Your Reflection</label><textarea id="reflectionText" placeholder="What are the strongest arguments? Which position is most convincing? How has the debate changed your thinking?" oninput="updateWordCount('reflectionText','reflectionCount')" style="min-height:280px;"></textarea><div class="word-count" id="reflectionCount">0 words</div></div><button class="btn" onclick="saveReflectionAndContinue()">Continue to Revised Draft</button></div>
+            </div>
+        </div>
+
+        <div class="step" id="step7"><div class="nav-buttons"><button class="btn btn-back" onclick="goToStep(6)">Back</button></div><h2 class="step-title">Step 6. Write Your Revised Draft</h2><div class="instruction"><p>Write a <strong>new</strong> revised essay (200–300 words). Use your <strong>notes</strong> and initial draft as reference.</p></div>
+            <div class="revised-draft-layout">
+                <div>
+                    <div class="reference-section"><div class="reference-header" onclick="toggleReference('notesRef')"><span>Your Notes from the Debate</span><span class="toggle-icon" id="notesRefIcon">&#9660;</span></div><div class="reference-content expanded" id="notesRef"><div id="notesReferenceContent" style="white-space:pre-wrap;font-size:0.9rem;color:var(--text-secondary);line-height:1.6;"></div></div></div>
+                    <div class="reference-section"><div class="reference-header" onclick="toggleReference('initialRef')"><span>Your Initial Draft</span><span class="toggle-icon" id="initialRefIcon">&#9654;</span></div><div class="reference-content collapsed" id="initialRef"><div class="revised-essay" id="initialDraftReference" style="border-color:var(--border);max-height:300px;overflow-y:auto;"></div></div></div>
+                </div>
+                <div class="writing-panel"><div class="input-group"><label>Your Revised Draft</label><textarea id="revisedDraftText" placeholder="Write your revised essay here..." style="min-height:420px;" oninput="updateWordCount('revisedDraftText','revisedDraftCount')"></textarea><div class="word-count" id="revisedDraftCount">0 words</div></div></div>
+            </div>
+            <button class="btn" onclick="generateFeedback()">Submit for Feedback</button><div id="feedbackError"></div>
+        </div>
+
+        <div class="step" id="step8"><div class="nav-buttons"><button class="btn btn-back" onclick="goToStep(7)">Back</button></div><h2 class="step-title">Step 7. Detailed Feedback</h2>
+            <h3 style="font-family:'DM Serif Display',serif;font-size:1.1rem;margin-bottom:14px;color:var(--accent-bright);">AI-Revised Version</h3><div class="revised-essay" id="aiRevisedEssay"></div>
+            <h3 style="font-family:'DM Serif Display',serif;font-size:1.1rem;margin-bottom:14px;color:var(--accent-bright);">Evaluation</h3><div class="feedback-box" id="feedbackContent"></div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;"><button class="btn btn-secondary" onclick="compareEssays()">Compare All Versions</button><button class="btn btn-secondary" onclick="downloadWorkTxt()">Download (TXT)</button><button class="btn" onclick="downloadWorkJson()">Download Data (JSON)</button></div>
+        </div>
+    </div>
+
+    <div class="mic-drop-overlay" id="micDropOverlay">
+        <div class="mic-drop-debate-view" id="micDropDebateView"><h3>Debate Reference</h3><div id="micDropDebateCopy"></div></div>
+        <div class="mic-drop-panel"><h2>Raise a Question</h2><p class="mic-drop-panel-subtitle">Challenge a specific debater</p>
+            <div class="mic-drop-form">
+                <div><label>Select Debater</label><select id="micDropTarget2" style="width:100%;padding:12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-card);color:var(--text-primary);font-family:inherit;"><option value="">Choose...</option></select></div>
+                <div><label>Suggested Starters</label><div class="mic-drop-stems"><button class="mic-drop-stem" onclick="useStem('Can you give a specific real-world example of...')">Give a specific example...</button><button class="mic-drop-stem" onclick="useStem('How would you respond to the argument that...')">How would you respond to...</button><button class="mic-drop-stem" onclick="useStem('What evidence supports your claim that...')">What evidence supports...</button><button class="mic-drop-stem" onclick="useStem('Don\'t you think your argument overlooks...')">Doesn't this overlook...</button></div></div>
+                <div style="flex:1;display:flex;flex-direction:column;"><label>Your Question</label><textarea id="micDropQuestion2" placeholder="Type your question..." style="flex:1;min-height:120px;padding:12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-card);color:var(--text-primary);font-family:inherit;resize:vertical;"></textarea></div>
+                <div class="mic-drop-buttons"><button class="btn btn-back" onclick="closeMicDropOverlay()" style="flex:1;">Cancel</button><button class="btn" onclick="executeMicDrop()" style="flex:2;">Submit Question</button></div>
+            </div>
+        </div>
+    </div>
+
+    <footer style="text-align:center;padding:32px 20px 24px;border-top:1px solid var(--border);margin-top:40px;color:var(--text-muted);font-size:0.82rem;line-height:1.6;">
+        <div>&copy; 2026 Chu Tianshu. All rights reserved.</div>
+        <div style="margin-top:4px;">Powered by DeepSeek V3.2 &middot; Designed for academic writing development</div>
+    </footer>
+
+    <div class="loading-overlay" id="loadingOverlay"><div class="loading-box"><div class="spinner"></div><div class="loading-text" id="loadingText">Generating...</div><div class="loading-subtext" id="loadingSubtext">Please wait</div><div class="loading-progress" id="loadingProgress" style="display:none;width:300px;margin:18px auto 0;"><div style="background:var(--border);border-radius:8px;height:8px;overflow:hidden;"><div id="loadingBar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--accent),var(--success));border-radius:8px;transition:width 0.6s ease;"></div></div><div id="loadingStage" style="margin-top:10px;font-size:0.82rem;color:var(--text-muted);text-align:center;"></div></div></div></div>
+
+    <script>
+    let currentStep=1,currentVisibleRound=0;
+    let debateData={studentName:'',topic:'',cefrLevel:'B2',rounds:3,personas:[],debate:{},keywords:{},micDrops:[],reflection:'',initialDraft:'',revisedDraft:'',notes:'',aiRevisedEssay:'',feedback:'',timestamps:{sessionStart:null,nameSubmitted:null,topicConfigured:null,personasGenerated:null,initialDraftStarted:null,initialDraftCompleted:null,debateStarted:null,debateViewed:null,reflectionStarted:null,reflectionCompleted:null,revisedDraftStarted:null,revisedDraftCompleted:null,feedbackReceived:null,stepTransitions:[]},interactions:{readingTime:{},writingTime:{},micDrops:[]}};
+    let apiConfig={provider:'deepseek-chat',apiKey:'sk-04f2ec533f9c478595339f21c6096662',endpoint:''}; /* ← SHARED API KEY: delete or replace after class session */
+    let currentStepStartTime=null,writingStartTime={},isWriting={};
+    const DEBATER_COLORS=['var(--debater-1)','var(--debater-2)','var(--debater-3)'],DEBATER_INITIALS=['A','B','C'];
+    const CEFR_CONFIG={
+        'B1':{wordMin:60,wordMax:90,complexity:'Use clear, simple language. Short sentences. Common vocabulary only. No jargon or technical terms. Use markers like "firstly", "however", "in conclusion".'},
+        'B2':{wordMin:80,wordMax:120,complexity:'Use moderately sophisticated but always clear language. No jargon or overly complex terms. Explain any necessary technical concepts simply. Use markers like "nevertheless", "on the other hand".'},
+        'C1':{wordMin:100,wordMax:150,complexity:'Use advanced but accessible vocabulary. Briefly explain any technical terms in context. No dense jargon. Include hedging like "it could be argued that".'},
+        'C2':{wordMin:120,wordMax:180,complexity:'Use sophisticated, precise language prioritising clarity over complexity. No unnecessary jargon. Model academic register while remaining readable.'}
+    };
+
+    window.onload=function(){
+        debateData.timestamps.sessionStart=new Date().toISOString();currentStepStartTime=Date.now();
+        /* API key is embedded — skip localStorage config */
+        const d=localStorage.getItem('debateData_v5b');if(d){const p=JSON.parse(d);const t=debateData.timestamps;debateData={...debateData,...p};debateData.timestamps={...p.timestamps,...t};if(debateData.topic){document.getElementById('topicInput').value=debateData.topic;document.getElementById('cefrLevel').value=debateData.cefrLevel||'B2';document.getElementById('debateRounds').value=debateData.rounds||3;}if(debateData.notes)document.getElementById('debateNotesText').value=debateData.notes;if(debateData.studentName)showUserGreeting();}
+        setupWritingTrackers();
+    };
+    function setupWritingTrackers(){['initialDraftText','reflectionText','revisedDraftText','debateNotesText'].forEach(id=>{const el=document.getElementById(id);if(el){el.addEventListener('focus',()=>{writingStartTime[id]=writingStartTime[id]||Date.now();isWriting[id]=true;});el.addEventListener('blur',()=>{if(writingStartTime[id]&&isWriting[id]){debateData.interactions.writingTime[id]=(debateData.interactions.writingTime[id]||0)+(Date.now()-writingStartTime[id]);isWriting[id]=false;writingStartTime[id]=null;saveDebateData();}});}});}
+    function trackStepTime(f,t){if(currentStepStartTime){const e=Date.now()-currentStepStartTime;const n=['','welcome','setup','initialDraft','personas','debateLab','reflection','revisedDraft','feedback'][f]||'step'+f;debateData.interactions.readingTime[n]=(debateData.interactions.readingTime[n]||0)+e;debateData.timestamps.stepTransitions.push({from:f,to:t,timestamp:new Date().toISOString(),timeSpent:e});}currentStepStartTime=Date.now();}
+    function saveNotes(){debateData.notes=document.getElementById('debateNotesText').value;saveDebateData();}
+
+    document.getElementById('apiProvider').addEventListener('change',function(){document.getElementById('customEndpointDiv').style.display=this.value==='custom'?'block':'none';});
+    function saveApiConfig(){const p=document.getElementById('apiProvider').value,k=document.getElementById('apiKey').value.trim(),e=document.getElementById('customEndpoint').value.trim();if(!k){alert('Please enter an API key');return;}apiConfig={provider:p,apiKey:k,endpoint:e};localStorage.setItem('apiConfig_v5',JSON.stringify(apiConfig));document.getElementById('configStatus').innerHTML='<p style="color:var(--success);margin-top:10px;">Configuration saved</p>';}
+    function getApiEndpoint(){return{'openai':'https://api.openai.com/v1/chat/completions','deepseek-chat':'https://api.deepseek.com/v1/chat/completions','anthropic':'https://api.anthropic.com/v1/messages','custom':apiConfig.endpoint}[apiConfig.provider];}
+    function getModelName(){return{'openai':'gpt-4','deepseek-chat':'deepseek-chat','anthropic':'claude-3-5-sonnet-20241022','custom':'gpt-4'}[apiConfig.provider];}
+
+    async function callLLM(prompt,sys='',maxTok=8192){
+        if(!apiConfig.apiKey)throw new Error('Please configure your API key first');
+        const ep=getApiEndpoint(),m=getModelName();
+        if(apiConfig.provider.startsWith('deepseek'))maxTok=Math.min(maxTok,8192);
+        if(apiConfig.provider==='anthropic'){const r=await fetch(ep,{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiConfig.apiKey,'anthropic-version':'2023-06-01'},body:JSON.stringify({model:m,max_tokens:maxTok,messages:[{role:'user',content:sys?sys+'\n\n'+prompt:prompt}]})});if(!r.ok){const e=await r.json();throw new Error(e.error?.message||'API failed');}return(await r.json()).content[0].text;}
+        else{const msgs=[];if(sys)msgs.push({role:'system',content:sys});msgs.push({role:'user',content:prompt});const r=await fetch(ep,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+apiConfig.apiKey},body:JSON.stringify({model:m,messages:msgs,temperature:0.7,max_tokens:maxTok})});if(!r.ok){const e=await r.json();throw new Error(e.error?.message||'API failed');}return(await r.json()).choices[0].message.content;}
+    }
+
+    function submitName(){const n=document.getElementById('studentName').value.trim();if(!n){alert('Please enter your name');return;}debateData.studentName=n;debateData.timestamps.nameSubmitted=new Date().toISOString();saveDebateData();showUserGreeting();goToStep(2);}
+    function showUserGreeting(){const g=document.getElementById('userGreeting');g.textContent='Welcome, '+debateData.studentName;g.style.display='block';}
+    function proceedToInitialDraft(){const t=document.getElementById('topicInput').value.trim();if(!t){alert('Please enter a topic');return;}debateData.topic=t;debateData.cefrLevel=document.getElementById('cefrLevel').value;debateData.rounds=parseInt(document.getElementById('debateRounds').value);debateData.timestamps.topicConfigured=new Date().toISOString();debateData.timestamps.initialDraftStarted=new Date().toISOString();document.getElementById('initialDraftTopic').textContent=t;saveDebateData();goToStep(3);}
+    function updateInitialDraftWordCount(){const w=document.getElementById('initialDraftText').value.trim().split(/\s+/).filter(x=>x.length>0).length;const el=document.getElementById('initialDraftCount');el.textContent=w+' words (minimum 200)';const ok=w>=200;el.className='word-count '+(ok?'success':'warning');document.getElementById('generatePersonasBtn').disabled=!ok;document.getElementById('initialDraftHint').style.display=ok?'none':'block';}
+    function goToStep(n){const st=document.querySelectorAll('.progress-step');if(n>currentStep+1&&!st[n-1].classList.contains('completed'))return;trackStepTime(currentStep,n);document.getElementById('step'+currentStep).classList.remove('active');st[currentStep-1].classList.remove('active');if(n>currentStep)st[currentStep-1].classList.add('completed');currentStep=n;document.getElementById('step'+currentStep).classList.add('active');st[currentStep-1].classList.add('active');if(n===6){debateData.timestamps.reflectionStarted=new Date().toISOString();populateReflectionDebate();const rn=document.getElementById('reflectionNotesContent');if(rn)rn.textContent=debateData.notes||'(No notes taken yet — you can go back to the Debate step to add some.)';}saveDebateData();window.scrollTo({top:0,behavior:'smooth'});}
+    function showLoading(t,s,stages){document.getElementById('loadingText').textContent=t;document.getElementById('loadingSubtext').textContent=s;document.getElementById('loadingOverlay').classList.add('active');const pg=document.getElementById('loadingProgress');if(stages){pg.style.display='block';animateProgress(stages);}else{pg.style.display='none';}}
+    function hideLoading(){document.getElementById('loadingOverlay').classList.remove('active');if(window._progressTimer)clearTimeout(window._progressTimer);document.getElementById('loadingBar').style.width='0%';}
+    function animateProgress(stages){let i=0;function next(){if(i<stages.length){const s=stages[i];document.getElementById('loadingBar').style.width=s.pct+'%';document.getElementById('loadingStage').textContent=s.label;i++;window._progressTimer=setTimeout(next,s.duration);}};next();}
+
+    async function generatePersonas(){
+        const topic=debateData.topic||document.getElementById('topicInput').value.trim();if(!topic){alert('Please enter a topic');return;}
+        debateData.topic=topic;debateData.cefrLevel=debateData.cefrLevel||document.getElementById('cefrLevel').value;debateData.rounds=debateData.rounds||parseInt(document.getElementById('debateRounds').value);
+        document.getElementById('personasError').innerHTML='';showLoading('Generating perspectives...','Creating 3 distinct viewpoints.',[{pct:15,label:'Analysing debate topic...',duration:3000},{pct:40,label:'Designing stakeholder roles...',duration:5000},{pct:70,label:'Defining positions and stances...',duration:5000},{pct:90,label:'Finalising personas...',duration:4000}]);
+        try{
+            const rolePool=['a grassroots community activist','a corporate executive','a school teacher','a medical professional','a farmer or agricultural worker','a technology entrepreneur','a social worker','a military veteran','a religious leader','a journalist','a factory worker','an environmental researcher','a parent of young children','a retired government official','a university student','an economist','an artist or musician','a small business owner','a lawyer','an immigrant with dual cultural perspective'];
+            const shuffled=rolePool.sort(()=>Math.random()-0.5);const picked=shuffled.slice(0,6);
+            const prompt='Generate 3 SHARPLY CONTRASTING stakeholder perspectives for a debate on: "'+topic+'"\n\nCRITICAL DIVERSITY RULES:\n1. Each persona is a ROLE (e.g. "The Environmental Scientist"), NOT a named individual.\n2. All 3 must take STRONG, COMMITTED positions. ABSOLUTELY NO moderate, centrist, or "balanced" middle-ground personas. Every debater must have a clear, firm stance.\n3. The 3 positions must be GENUINELY DIFFERENT from each other — not slight variations of the same view. They should disagree with each other on fundamental points.\n4. Each persona must approach the topic from a COMPLETELY DIFFERENT angle — different values, different priorities, different life experiences.\n5. "spectrum" must be EITHER below 25 OR above 75. Never between 30-70.\n6. Draw inspiration from roles like: '+picked.join(', ')+' — but adapt creatively to fit the topic.\n\nSeed: '+Math.random().toString(36).substring(2,10)+'-'+Date.now()+'\n\nReturn JSON only:\n{"personas":[{"role":"The [Role]","stance":"[ONE clear, committed sentence — no hedging or balancing]","background":"[1-2 sentences: specific professional context and WHY they hold this strong view]","spectrum":[0-25 or 75-100]}]}';
+            const r=await callLLM(prompt,'You generate MAXIMALLY DIVERSE debate personas. CRITICAL: No middle-ground positions. All 3 must strongly disagree with each other. Each approaches from a fundamentally different angle. Spectrum values must be <25 or >75, never in the middle. Valid JSON only.',4096);
+            let j=r.match(/\{[\s\S]*\}/);if(!j)throw new Error('Invalid format');
+            const d=JSON.parse(j[0]);debateData.personas=d.personas.map(p=>({name:p.role,role:p.role,stance:p.stance,background:p.background,spectrum:p.spectrum,description:p.stance+' '+p.background}));
+            debateData.timestamps.personasGenerated=new Date().toISOString();saveDebateData();displayPersonas();goToStep(4);
+        }catch(e){console.error(e);document.getElementById('personasError').innerHTML='<div class="error">Error: '+e.message+'</div>';}finally{hideLoading();}
+    }
+
+    function displayPersonas(){
+        const g=document.getElementById('personaGrid');g.innerHTML='';
+        debateData.personas.forEach((p,i)=>{const c=document.createElement('div');c.className='persona-card';c.dataset.index=i;
+        c.innerHTML='<div class="persona-role-badge">Debater '+DEBATER_INITIALS[i]+'</div><div class="input-group" style="margin-bottom:10px;"><label style="font-size:0.78rem;">Role</label><input type="text" id="personaRole'+i+'" value="'+p.role+'" style="font-weight:600;font-size:1rem;"></div><div class="input-group" style="margin-bottom:10px;"><label style="font-size:0.78rem;">Stance</label><textarea id="personaStance'+i+'" rows="2" oninput="updatePersonaPreview('+i+')">'+p.stance+'</textarea></div><div class="persona-spectrum"><span style="font-size:0.72rem;">Against</span><div class="spectrum-bar"><div class="spectrum-marker" style="left:'+(p.spectrum||50)+'%;background:'+DEBATER_COLORS[i]+';"></div></div><span style="font-size:0.72rem;">For</span></div><button class="persona-details-toggle" onclick="togglePersonaDetails('+i+')" id="detailsToggle'+i+'">Edit background &#9660;</button><div class="persona-details collapsed" id="personaDetails'+i+'"><div class="input-group" style="margin-bottom:0;"><label style="font-size:0.78rem;">Background</label><textarea id="personaBackground'+i+'" rows="3">'+p.background+'</textarea></div></div>';
+        g.appendChild(c);});
+    }
+    function updatePersonaPreview(i){/* live update stored data */const s=document.getElementById('personaStance'+i);if(s&&debateData.personas[i])debateData.personas[i].stance=s.value;}
+    function togglePersonaDetails(i){const d=document.getElementById('personaDetails'+i),b=document.getElementById('detailsToggle'+i);if(d.classList.contains('collapsed')){d.classList.remove('collapsed');d.classList.add('expanded');b.innerHTML='Hide background &#9650;';}else{d.classList.remove('expanded');d.classList.add('collapsed');b.innerHTML='Edit background &#9660;';}}
+
+    async function generateDebate(){
+        debateData.personas.forEach((p,i)=>{const r=document.getElementById('personaRole'+i),s=document.getElementById('personaStance'+i),b=document.getElementById('personaBackground'+i);if(r)p.role=p.name=r.value;if(s){p.stance=s.value;p.description=s.value+' '+(b?b.value:p.background);}if(b)p.background=b.value;});
+        debateData.initialDraft=document.getElementById('initialDraftText').value;debateData.timestamps.initialDraftCompleted=new Date().toISOString();saveDebateData();
+        document.getElementById('debateError').innerHTML='';showLoading('Generating debate...','This usually takes 30–60 seconds.',[ {pct:10,label:'Preparing debater positions...',duration:3000}, {pct:25,label:'Generating Round 1: Opening statements...',duration:8000}, {pct:45,label:'Generating Round 2: Rebuttals and challenges...',duration:10000}, {pct:65,label:'Generating Round 3: Final arguments...',duration:10000}, {pct:80,label:'Extracting key arguments...',duration:6000}, {pct:92,label:'Finalising debate transcript...',duration:8000} ]);
+        try{
+            const cefr=CEFR_CONFIG[debateData.cefrLevel];const pt=debateData.personas.map(p=>p.role+': Stance - '+p.stance+'. Background - '+p.background).join('\n');
+            const prompt='Generate a '+debateData.rounds+'-round debate on: "'+debateData.topic+'"\nCEFR: '+debateData.cefrLevel+'\n\nLANGUAGE (CRITICAL):\n'+cefr.complexity+'\n- NEVER use jargon, technical terminology, or overly complex academic language.\n- Every argument must be in clear, accessible English.\n- If a concept is technical, explain it simply.\n\nDebaters:\n'+pt+'\n\nSTRUCTURE:\n1. Each speech: '+cefr.wordMin+'-'+cefr.wordMax+' words. Strict.\n2. Real evidence only. No invented statistics.\n3. When responding: start with "Responding to [Role]\'s point that [summary]:"\n4. After each round: 2-3 sentence round_summary.\n5. Extract 4-5 key terms per debater.\n\nReturn JSON:\n{"rounds":[{"round_number":1,"round_name":"Opening Statements","round_summary":"...","speeches":[{"debater":"'+debateData.personas[0].role+'","responds_to":null,"content":"..."}]}],"keywords":{"'+debateData.personas[0].role+'":["t1","t2"],"'+debateData.personas[1].role+'":["t1","t2"],"'+debateData.personas[2].role+'":["t1","t2"]}}';
+            const r=await callLLM(prompt,'Expert debate moderator. Clear accessible language, no jargon. Real evidence. Valid JSON only.',8192);
+            let j=r.match(/\{[\s\S]*\}/);if(!j)throw new Error('Invalid format');
+            const d=JSON.parse(j[0]);debateData.debate=d;debateData.keywords=d.keywords||{};debateData.micDrops=[];debateData.timestamps.debateStarted=new Date().toISOString();saveDebateData();
+            currentVisibleRound=0;displayDebate();goToStep(5);
+        }catch(e){console.error(e);document.getElementById('debateError').innerHTML='<div class="error">Error: '+e.message+'</div>';}finally{hideLoading();}
+    }
+
+    function displayDebate(){
+        debateData.timestamps.debateViewed=new Date().toISOString();const c=document.getElementById('debateContent');c.innerHTML='';
+        if(!debateData.debate||!debateData.debate.rounds)return;
+        debateData.debate.rounds.forEach((round,ri)=>{const sec=document.createElement('div');sec.className='round-section';sec.id='round-'+ri;sec.style.display=ri<=currentVisibleRound?'block':'none';
+            let h='<div class="round-header">Round '+(ri+1)+': '+(round.round_name||'')+'</div>';
+            round.speeches.forEach(sp=>{const di=debateData.personas.findIndex(p=>p.role===sp.debater||p.name===sp.debater);const idx=di>=0?di:0;const rt=sp.responds_to||sp.replies_to;const ri2=rt?'<div class="reply-indicator">Responding to '+rt+'</div>':'';
+                h+='<div class="statement" data-debater="'+idx+'"><div class="statement-header"><div class="debater-badge"><div class="debater-icon" data-index="'+idx+'">'+DEBATER_INITIALS[idx]+'</div><div class="debater-name-small" data-index="'+idx+'">'+sp.debater+'</div></div></div>'+ri2+'<div class="statement-content">'+sp.content+'</div></div>';});
+            if(round.round_summary)h+='<div class="round-summary"><strong>Round Summary</strong><br>'+round.round_summary+'</div>';
+            sec.innerHTML=h;c.appendChild(sec);});
+        if(debateData.micDrops&&debateData.micDrops.length>0){debateData.micDrops.forEach(drop=>{const div=document.createElement('div');div.className='round-section';div.innerHTML='<div class="statement" style="border-left-color:var(--warning);background:rgba(251,191,36,0.05);"><div class="statement-header"><div class="debater-badge"><div class="debater-icon" style="background:var(--warning);color:var(--bg-deep);">Q</div><div class="debater-name-small" style="color:var(--warning);">Question to '+drop.target+'</div></div></div><div class="statement-content"><strong>Question:</strong> '+drop.question+'</div><div class="statement-content" style="margin-top:10px;"><strong>'+drop.target+':</strong> '+drop.response+'</div></div>';c.appendChild(div);});}
+        updateRoundNav();displayKeywords();populateMicDropDropdowns();
+        document.getElementById('currentRoundBadge').textContent='Round '+(currentVisibleRound+1)+' of '+debateData.debate.rounds.length;
+        if(debateData.notes)document.getElementById('debateNotesText').value=debateData.notes;
+    }
+    function showNextRound(){const t=debateData.debate.rounds.length;if(currentVisibleRound<t-1){currentVisibleRound++;const s=document.getElementById('round-'+currentVisibleRound);if(s){s.style.display='block';s.scrollIntoView({behavior:'smooth',block:'start'});}}updateRoundNav();document.getElementById('currentRoundBadge').textContent='Round '+(currentVisibleRound+1)+' of '+debateData.debate.rounds.length;}
+    function updateRoundNav(){const t=debateData.debate.rounds?debateData.debate.rounds.length:0;const b=document.getElementById('nextRoundBtn'),ct=document.getElementById('continueToReflectionBtn');if(currentVisibleRound>=t-1){b.style.display='none';ct.style.display='inline-block';}else{b.style.display='inline-block';b.textContent='Continue to Round '+(currentVisibleRound+2);ct.style.display='none';}}
+    function displayKeywords(){const d=document.getElementById('keywordsContent');d.innerHTML='';if(!debateData.keywords)return;debateData.personas.forEach((p,i)=>{const kw=debateData.keywords[p.role]||debateData.keywords[p.name]||[];const it=document.createElement('div');it.className='keywords-item';it.innerHTML='<div class="keywords-debater"><div class="debater-icon" data-index="'+i+'" style="width:28px;height:28px;font-size:0.7rem;">'+DEBATER_INITIALS[i]+'</div><div class="keywords-debater-name" style="color:'+DEBATER_COLORS[i]+';">'+p.role+'</div></div><div class="keyword-tags">'+kw.map(k=>'<div class="keyword-tag">'+k+'</div>').join('')+'</div>';d.appendChild(it);});}
+
+    function populateMicDropDropdowns(){const s=document.getElementById('micDropTarget2');s.innerHTML='<option value="">Choose...</option>';debateData.personas.forEach(p=>{const o=document.createElement('option');o.value=p.role;o.textContent=p.role;s.appendChild(o);});}
+    function useStem(t){document.getElementById('micDropQuestion2').value=t;document.getElementById('micDropQuestion2').focus();}
+    function openMicDropOverlay(){const cp=document.getElementById('debateContent').cloneNode(true);document.getElementById('micDropDebateCopy').innerHTML='';document.getElementById('micDropDebateCopy').appendChild(cp);document.getElementById('micDropOverlay').classList.add('active');}
+    function closeMicDropOverlay(){document.getElementById('micDropOverlay').classList.remove('active');}
+
+    async function executeMicDrop(){
+        const tgt=document.getElementById('micDropTarget2').value,q=document.getElementById('micDropQuestion2').value.trim();
+        if(!tgt||!q){alert('Select a debater and enter your question');return;}closeMicDropOverlay();showLoading('Processing...','Getting response from '+tgt);
+        try{const p=debateData.personas.find(x=>x.role===tgt);const cefr=CEFR_CONFIG[debateData.cefrLevel];
+            const prompt='You are '+tgt+': '+p.stance+'. Background: '+p.background+'\nTopic: "'+debateData.topic+'". CEFR: '+debateData.cefrLevel+'.\n'+cefr.complexity+'\nCRITICAL: Clear, accessible language. No jargon.\nStudent asks: "'+q+'"\nRespond in character, 2-3 sentences.';
+            const r=await callLLM(prompt,'Debate persona. Stay in character. Clear language.',2048);
+            const entry={target:tgt,question:q,response:r,timestamp:new Date().toISOString()};
+            debateData.micDrops=debateData.micDrops||[];debateData.micDrops.push(entry);debateData.interactions.micDrops.push(entry);saveDebateData();
+            document.getElementById('micDropTarget2').value='';document.getElementById('micDropQuestion2').value='';displayDebate();
+        }catch(e){console.error(e);alert('Error: '+e.message);}finally{hideLoading();}
+    }
+
+    function populateReflectionDebate(){
+        const c=document.getElementById('reflectionDebateContent');if(!c||!debateData.debate||!debateData.debate.rounds)return;c.innerHTML='';
+        debateData.debate.rounds.forEach((round,ri)=>{const d=document.createElement('div');d.style.marginBottom='16px';d.innerHTML='<div style="font-weight:600;color:var(--accent-bright);margin-bottom:8px;font-size:0.85rem;">Round '+(ri+1)+': '+(round.round_name||'')+'</div>';
+            round.speeches.forEach(sp=>{const di=debateData.personas.findIndex(p=>p.role===sp.debater||p.name===sp.debater);const idx=di>=0?di:0;const s=document.createElement('div');s.style.cssText='background:var(--bg-card);padding:10px;border-radius:6px;margin-bottom:8px;border-left:3px solid '+DEBATER_COLORS[idx]+';';s.innerHTML='<div style="font-weight:600;color:'+DEBATER_COLORS[idx]+';margin-bottom:4px;font-size:0.82rem;">'+sp.debater+'</div><div style="font-size:0.88rem;color:var(--text-secondary);line-height:1.5;">'+sp.content+'</div>';d.appendChild(s);});
+            if(round.round_summary){const sm=document.createElement('div');sm.style.cssText='font-size:0.82rem;color:var(--text-muted);font-style:italic;margin-bottom:8px;padding:8px;background:var(--bg-deep);border-radius:6px;';sm.textContent=round.round_summary;d.appendChild(sm);}c.appendChild(d);});
+        if(debateData.micDrops&&debateData.micDrops.length>0){const sec=document.createElement('div');sec.innerHTML='<div style="font-weight:600;color:var(--warning);margin:14px 0 8px;font-size:0.85rem;">Your Questions</div>';debateData.micDrops.forEach(dr=>{const dd=document.createElement('div');dd.style.cssText='background:rgba(251,191,36,0.05);padding:10px;border-radius:6px;margin-bottom:8px;border-left:3px solid var(--warning);';dd.innerHTML='<div style="font-size:0.82rem;color:var(--warning);margin-bottom:4px;"><strong>Q to '+dr.target+':</strong> '+dr.question+'</div><div style="font-size:0.82rem;color:var(--text-secondary);"><strong>A:</strong> '+dr.response+'</div>';sec.appendChild(dd);});c.appendChild(sec);}
+    }
+
+    function saveReflectionAndContinue(){debateData.reflection=document.getElementById('reflectionText').value;debateData.timestamps.reflectionCompleted=new Date().toISOString();document.getElementById('revisedDraftText').value='';updateWordCount('revisedDraftText','revisedDraftCount');document.getElementById('notesReferenceContent').textContent=debateData.notes||'(No notes taken)';document.getElementById('initialDraftReference').innerHTML=debateData.initialDraft.split('\n').map(p=>'<p>'+p+'</p>').join('');debateData.timestamps.revisedDraftStarted=new Date().toISOString();saveDebateData();goToStep(7);}
+    function toggleReference(id){const c=document.getElementById(id),ic=document.getElementById(id+'Icon');if(c.classList.contains('expanded')){c.classList.remove('expanded');c.classList.add('collapsed');ic.innerHTML='&#9654;';}else{c.classList.remove('collapsed');c.classList.add('expanded');ic.innerHTML='&#9660;';}}
+
+    async function generateFeedback(){
+        const essay=document.getElementById('revisedDraftText').value.trim();if(!essay){alert('Please write your revised essay');return;}
+        debateData.revisedDraft=essay;debateData.timestamps.revisedDraftCompleted=new Date().toISOString();saveDebateData();
+        document.getElementById('feedbackError').innerHTML='';showLoading('Analyzing your essay...','Generating detailed rubric-based feedback.',[{pct:10,label:'Reading your initial and revised drafts...',duration:3000},{pct:25,label:'Evaluating clarity and coherence...',duration:6000},{pct:40,label:'Assessing argument structure and reasoning...',duration:7000},{pct:55,label:'Checking evidence and counterarguments...',duration:7000},{pct:70,label:'Analysing nuance and qualification...',duration:6000},{pct:85,label:'Writing AI-revised version...',duration:8000},{pct:95,label:'Finalising feedback report...',duration:8000}]);
+        try{
+            const prompt='You are an expert EFL writing instructor evaluating a '+debateData.cefrLevel+'-level student\'s argumentative essay on "'+debateData.topic+'".\n\nINITIAL DRAFT:\n'+debateData.initialDraft+'\n\nREVISED DRAFT:\n'+essay+'\n\nEvaluate the REVISED DRAFT. For EACH criterion provide:\n- Rating: "Strong", "Developing", or "Emerging"\n- 3-4 sentences of specific, actionable feedback with concrete examples from the text.\n\nCRITERIA:\n1. CLARITY & COHERENCE: Logical organisation, smooth flow, effective transitions.\n2. ARGUMENT STRUCTURE: Clear thesis, well-organised points, intro/body/conclusion.\n3. REASONING DEPTH: Rigour of logic, claims supported with reasoning not just assertions, logical fallacies.\n4. EVIDENCE SPECIFICITY: Concrete, relevant evidence vs vague generalisations.\n5. NUANCE & QUALIFICATION: Hedging, conditions, acknowledging complexity vs absolute claims.\n6. COUNTERARGUMENT QUALITY: Depth and fairness of engaging opposing views.\n7. PROGRESS: Specific improvements from initial draft and areas still needing work.\n\nAlso provide an AI-revised version.\n\nReturn JSON:\n{"ai_revised_essay":"[text]","evaluation":{"clarity_coherence":{"rating":"...","feedback":"..."},"argument_structure":{"rating":"...","feedback":"..."},"reasoning_depth":{"rating":"...","feedback":"..."},"evidence_specificity":{"rating":"...","feedback":"..."},"nuance_qualification":{"rating":"...","feedback":"..."},"counterargument_quality":{"rating":"...","feedback":"..."},"progress":{"feedback":"..."}}}';
+            const r=await callLLM(prompt,'Expert EFL writing instructor. Specific rubric-based feedback with examples from student text. Valid JSON only.',8192);
+            let j=r.match(/\{[\s\S]*\}/);if(!j)throw new Error('Invalid format');
+            const d=JSON.parse(j[0]);debateData.aiRevisedEssay=d.ai_revised_essay;debateData.feedback=d.evaluation;debateData.timestamps.feedbackReceived=new Date().toISOString();saveDebateData();displayFeedback(d);goToStep(8);
+        }catch(e){console.error(e);document.getElementById('feedbackError').innerHTML='<div class="error">Error: '+e.message+'</div>';}finally{hideLoading();}
+    }
+
+    function displayFeedback(d){
+        document.getElementById('aiRevisedEssay').innerHTML=d.ai_revised_essay.split('\n\n').map(p=>'<p>'+p+'</p>').join('');
+        const ev=d.evaluation;const crit=[{key:'clarity_coherence',label:'Clarity & Coherence'},{key:'argument_structure',label:'Argument Structure'},{key:'reasoning_depth',label:'Reasoning Depth'},{key:'evidence_specificity',label:'Evidence Specificity'},{key:'nuance_qualification',label:'Nuance & Qualification'},{key:'counterargument_quality',label:'Counterargument Quality'},{key:'progress',label:'Progress from Initial Draft'}];
+        let h='';crit.forEach(c=>{const it=ev[c.key];if(!it)return;const rt=it.rating;let sc='';if(rt==='Strong')sc='score-strong';else if(rt==='Developing')sc='score-developing';else if(rt==='Emerging')sc='score-emerging';
+        h+='<div class="feedback-section"><div class="feedback-criterion">'+c.label+(rt?' <span class="feedback-score '+sc+'">'+rt+'</span>':'')+'</div><div class="feedback-text">'+it.feedback+'</div></div>';});
+        document.getElementById('feedbackContent').innerHTML=h;
+    }
+
+    function updateWordCount(t,c){const w=document.getElementById(t).value.trim().split(/\s+/).filter(x=>x.length>0).length;document.getElementById(c).textContent=w+' words';}
+    function saveDebateData(){localStorage.setItem('debateData_v5b',JSON.stringify(debateData));}
+
+    function compareEssays(){const p=window.open('','C','width=1400,height=700');p.document.write('<html><head><title>Compare</title><style>body{font-family:DM Sans,sans-serif;padding:24px;background:#0c1222;color:#e8ecf4;}h1{text-align:center;color:#3b9eff;font-size:1.4rem;margin-bottom:20px;}.g{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;}.c{background:#182240;padding:22px;border-radius:12px;}h2{color:#6cb8ff;font-size:1rem;margin-bottom:12px;}.e{line-height:1.8;font-size:0.92rem;}</style></head><body><h1>Essay Comparison - '+debateData.studentName+'</h1><div class="g"><div class="c"><h2>Initial Draft</h2><div class="e">'+debateData.initialDraft.replace(/\n/g,'<br><br>')+'</div></div><div class="c"><h2>Revised Draft</h2><div class="e">'+debateData.revisedDraft.replace(/\n/g,'<br><br>')+'</div></div><div class="c"><h2>AI-Revised</h2><div class="e">'+debateData.aiRevisedEssay.replace(/\n\n/g,'<br><br>')+'</div></div></div></body></html>');}
+
+    function downloadWorkTxt(){let dt='';if(debateData.debate&&debateData.debate.rounds){debateData.debate.rounds.forEach(r=>{dt+='\n'+(r.round_name||'').toUpperCase()+'\n'+'='.repeat(50)+'\n';r.speeches.forEach(s=>{dt+='\n'+s.debater+':\n'+s.content+'\n';if(s.responds_to)dt+='(Responding to: '+s.responds_to+')\n';});if(r.round_summary)dt+='\n[Summary: '+r.round_summary+']\n';});}
+    if(debateData.micDrops&&debateData.micDrops.length>0){dt+='\n\nSTUDENT QUESTIONS\n'+'='.repeat(50)+'\n';debateData.micDrops.forEach(d=>{dt+='\nQ to '+d.target+': '+d.question+'\nA: '+d.response+'\n';});}
+    let et='';if(debateData.feedback){const ev=debateData.feedback;['clarity_coherence','argument_structure','reasoning_depth','evidence_specificity','nuance_qualification','counterargument_quality','progress'].forEach(k=>{if(ev[k])et+='\n'+k.replace(/_/g,' ').toUpperCase()+(ev[k].rating?' ['+ev[k].rating+']':'')+'\n'+ev[k].feedback+'\n';});}
+    const ct='DEBATE LAB v5\n'+'='.repeat(40)+'\nStudent: '+debateData.studentName+'\nDate: '+new Date().toLocaleString()+'\nTopic: '+debateData.topic+'\nCEFR: '+debateData.cefrLevel+'\n\nDEBATERS\n'+'-'.repeat(30)+'\n'+debateData.personas.map(p=>p.role+'\nStance: '+p.stance+'\nBackground: '+p.background).join('\n\n')+'\n\nDEBATE'+dt+'\n\nNOTES\n'+'-'.repeat(30)+'\n'+(debateData.notes||'(none)')+'\n\nINITIAL DRAFT\n'+'-'.repeat(30)+'\n'+debateData.initialDraft+'\n\nREFLECTION\n'+'-'.repeat(30)+'\n'+debateData.reflection+'\n\nREVISED DRAFT\n'+'-'.repeat(30)+'\n'+debateData.revisedDraft+'\n\nAI-REVISED\n'+'-'.repeat(30)+'\n'+debateData.aiRevisedEssay+'\n\nEVALUATION\n'+'-'.repeat(30)+et;
+    const b=new Blob([ct],{type:'text/plain'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='debate-lab-'+debateData.studentName.replace(/\s+/g,'-')+'-'+Date.now()+'.txt';a.click();}
+
+    function downloadWorkJson(){['initialDraftText','reflectionText','revisedDraftText','debateNotesText'].forEach(id=>{if(writingStartTime[id]&&isWriting[id]){debateData.interactions.writingTime[id]=(debateData.interactions.writingTime[id]||0)+(Date.now()-writingStartTime[id]);isWriting[id]=false;writingStartTime[id]=null;}});
+    const exp={metadata:{exportDate:new Date().toISOString(),platform:'Debate Lab v5',version:'5.1'},student:{name:debateData.studentName},configuration:{topic:debateData.topic,cefrLevel:debateData.cefrLevel,rounds:debateData.rounds},personas:debateData.personas,debate:debateData.debate,keywords:debateData.keywords,micDropInteractions:(debateData.micDrops||[]).map(d=>({target:d.target,question:d.question,response:d.response,timestamp:d.timestamp})),studentWork:{initialDraft:{content:debateData.initialDraft,wordCount:debateData.initialDraft?debateData.initialDraft.trim().split(/\s+/).filter(w=>w.length>0).length:0},notes:debateData.notes||'',reflection:{content:debateData.reflection,wordCount:debateData.reflection?debateData.reflection.trim().split(/\s+/).filter(w=>w.length>0).length:0},revisedDraft:{content:debateData.revisedDraft,wordCount:debateData.revisedDraft?debateData.revisedDraft.trim().split(/\s+/).filter(w=>w.length>0).length:0},aiRevisedEssay:debateData.aiRevisedEssay},feedback:debateData.feedback,analytics:{timestamps:debateData.timestamps,interactions:{readingTime:debateData.interactions.readingTime,writingTime:{initialDraft:debateData.interactions.writingTime.initialDraftText||0,notes:debateData.interactions.writingTime.debateNotesText||0,reflection:debateData.interactions.writingTime.reflectionText||0,revisedDraft:debateData.interactions.writingTime.revisedDraftText||0},totalMicDrops:(debateData.micDrops||[]).length,micDropDetails:debateData.interactions.micDrops},stepTransitions:debateData.timestamps.stepTransitions}};
+    const b=new Blob([JSON.stringify(exp,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='debate-lab-data-'+debateData.studentName.replace(/\s+/g,'-')+'-'+Date.now()+'.json';a.click();}
+    </script>
+</body>
+</html>
